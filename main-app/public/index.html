@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Monitoring Kualitas Air Kolam Bioflok</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      margin: 0;
+      background: linear-gradient(to bottom right, #0f2027, #203a43, #2c5364);
+      color: white;
+      font-family: 'Segoe UI', sans-serif;
+      overflow-x: hidden;
+    }
+    .sidebar { height: 100vh; width: 220px; position: fixed; top: 0; left: -220px; background-color: rgba(255,255,255,0.08); backdrop-filter: blur(10px); padding-top: 60px; transition: all 0.3s ease; z-index: 1000; }
+    .sidebar.active { left: 0; }
+    .sidebar h4 { text-align: center; margin-bottom: 30px; font-weight: bold; }
+    .sidebar a { display: block; padding: 15px 30px; color: white; text-decoration: none; transition: 0.2s; }
+    .sidebar a:hover { background-color: rgba(255,255,255,0.1); }
+    .main-wrapper { padding: 40px; max-width: 1200px; margin: 0 auto; transition: all 0.3s ease; }
+    .glass-card { background: rgba(255,255,255,0.15); border-radius: 20px; padding: 25px; backdrop-filter: blur(12px); box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+    .highlight-card { background: rgba(255,255,255,0.2); }
+    .value { font-size: 1.8rem; font-weight: bold; word-break: break-word; }
+    .glass-card.text-center { min-height: 135px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 10px; }
+    .chart-tab { cursor: pointer; }
+    .chart-tab.active { font-weight: bold; }
+    .navbar-toggle { position: fixed; top: 20px; left: 20px; z-index: 1100; background: transparent; border: none; border-radius: 6px; padding: 8px 12px; color: white; font-size: 20px; }
+    #sidebarBackdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 999; }
+    .status-text { font-size: 2rem; font-weight: 800; color: white; }
+    footer { text-align: center; color: #ccc; font-size: 15px; margin-top: 50px; padding: 5px 0; }
+    canvas { width: 100% !important; height: auto !important; }
+  </style>
+</head>
+<body>
+
+  <button class="navbar-toggle" onclick="toggleSidebar()">☰</button>
+  <div id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+
+  <div class="sidebar" id="sidebar">
+    <h4>Bioflok App</h4>
+    <a href="/index">Dashboard</a>
+    <a href="/log-data">Log Data</a>
+  </div>
+
+  <div class="main-wrapper" id="mainContent">
+    <h2 class="mb-4 text-center">Monitoring Kualitas Air Kolam Bioflok</h2> <br>
+    <div class="row g-4 justify-content-center">
+      <div class="col-lg-6 col-md-12">
+        <div class="glass-card highlight-card mb-4 text-left">
+          <h4>Kualitas Air</h4>
+          <p id="timestamp">-</p>
+          <p class="status-text" id="status">-</p>
+        </div>
+        <div class="row g-3">
+          <div class="col-md-4 col-6">
+            <div class="glass-card text-center">
+              <p>Suhu</p>
+              <div class="value" id="temp">-</div>
+            </div>
+          </div>
+          <div class="col-md-4 col-6">
+            <div class="glass-card text-center">
+              <p>pH</p>
+              <div class="value" id="pH">-</div>
+            </div>
+          </div>
+          <div class="col-md-4 col-12">
+            <div class="glass-card text-center">
+              <p>Kekeruhan</p>
+              <div class="value" id="turbidity">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-6 col-md-12">
+        <div class="glass-card">
+          <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+            <h4 id="chartTitle">Grafik Suhu</h4>
+            <div class="mt-2 mt-md-0">
+              <span class="chart-tab me-3 active" onclick="switchChart('temperature')">Suhu</span>
+              <span class="chart-tab me-3" onclick="switchChart('pH')">pH</span>
+              <span class="chart-tab" onclick="switchChart('turbidity')">Kekeruhan</span>
+            </div>
+          </div>
+          <canvas id="chartCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+    <footer>&copy; 2025 Bioflok Monitoring System. All rights reserved.</footer>
+  </div>
+
+  <script>
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const backdrop = document.getElementById('sidebarBackdrop');
+      const isActive = sidebar.classList.toggle('active');
+      backdrop.style.display = isActive ? 'block' : 'none';
+    }
+
+    const labels = [];
+    const datasets = { temperature: [], pH: [], turbidity: [] };
+
+    function loadStoredChartData() {
+      const stored = JSON.parse(localStorage.getItem("chartData") || "{}");
+      if (stored.labels) {
+        labels.push(...stored.labels);
+        datasets.temperature.push(...stored.temperature);
+        datasets.pH.push(...stored.pH);
+        datasets.turbidity.push(...stored.turbidity);
+      }
+    }
+
+    function saveChartData() {
+      localStorage.setItem("chartData", JSON.stringify({
+        labels,
+        temperature: datasets.temperature,
+        pH: datasets.pH,
+        turbidity: datasets.turbidity
+      }));
+    }
+
+    const ctx = document.getElementById('chartCanvas').getContext('2d');
+    const chartTitle = document.getElementById("chartTitle");
+
+    let chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Suhu (°C)',
+          data: datasets.temperature,
+          borderColor: '#4dc9f6',
+          backgroundColor: 'rgba(77, 201, 246, 0.2)',
+          fill: true,
+          tension: 0.4
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: { ticks: { color: 'white' } },
+          x: { ticks: { color: 'white' } }
+        },
+        plugins: {
+          legend: { labels: { color: 'white' } }
+        }
+      }
+    });
+
+    function switchChart(type) {
+      document.querySelectorAll(".chart-tab").forEach(tab => tab.classList.remove("active"));
+      document.querySelector(`.chart-tab[onclick="switchChart('${type}')"]`).classList.add("active");
+      chart.data.datasets[0].data = datasets[type];
+      chart.data.datasets[0].label = type === 'temperature' ? 'Suhu (°C)' : type === 'pH' ? 'pH' : 'Kekeruhan (NTU)';
+      chartTitle.textContent = "Grafik " + (type === 'temperature' ? 'Suhu' : type === 'pH' ? 'pH' : 'Kekeruhan');
+      chart.update();
+    }
+
+    function formatDate(date) {
+      return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
+    }
+
+    function formatFullDate(date) {
+      const tanggal = date.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Jakarta' });
+      const jam = date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
+      return `${tanggal} ${jam} WIB`;
+    }
+
+    async function fetchData() {
+      try {
+        const response = await fetch('/firebase-data');
+        const data = await response.json();
+        if (data.error) return;
+
+        const suhu = parseFloat(data.raw_data.temperature);
+        const pH = parseFloat(data.raw_data.pH);
+        const turbidity = parseFloat(data.raw_data.turbidity);
+        const time = new Date(data.timestamp);
+        const label = formatDate(time);
+
+        document.getElementById('temp').textContent = suhu.toFixed(1) + '°C';
+        document.getElementById('pH').textContent = pH.toFixed(1);
+        document.getElementById('turbidity').textContent = ('' + turbidity).length > 5 ? turbidity.toPrecision(4) + ' NTU' : turbidity + ' NTU';
+        document.getElementById('status').textContent = data.classification;
+        document.getElementById('timestamp').textContent = formatFullDate(time);
+
+        if (labels[labels.length - 1] !== label) {
+          if (labels.length >= 8) labels.shift();
+          if (datasets.temperature.length >= 8) datasets.temperature.shift();
+          if (datasets.pH.length >= 8) datasets.pH.shift();
+          if (datasets.turbidity.length >= 8) datasets.turbidity.shift();
+
+          labels.push(label);
+          datasets.temperature.push(suhu);
+          datasets.pH.push(pH);
+          datasets.turbidity.push(turbidity);
+
+          saveChartData();
+        }
+
+        const activeType = document.querySelector(".chart-tab.active")?.textContent.toLowerCase();
+        switchChart(activeType === 'suhu' ? 'temperature' : activeType === 'ph' ? 'pH' : 'turbidity');
+      } catch (error) {
+        console.error('Gagal ambil data:', error);
+      }
+    }
+
+    window.onload = () => {
+      loadStoredChartData();
+      fetchData();
+      setInterval(fetchData, 5000);
+    };
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            console.log("Tab kembali aktif, mengambil data terbaru...");
+            fetchData();
+        }
+    });
+  </script>
+</body>
+</html>

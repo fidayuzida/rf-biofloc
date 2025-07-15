@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Log Data - Bioflok Monitoring</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+
+    body {
+      margin: 0;
+      background: linear-gradient(to bottom right, #0f2027, #203a43, #2c5364);
+      color: #f5f5f5;
+      font-family: 'Segoe UI', sans-serif;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-image: url('https://www.transparenttextures.com/patterns/black-paper.png');
+      opacity: 0.04;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .sidebar {
+      height: 100vh;
+      width: 220px;
+      position: fixed;
+      top: 0;
+      left: -220px;
+      background-color: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(10px);
+      padding-top: 60px;
+      transition: all 0.3s ease;
+      z-index: 1000;
+    }
+
+    .sidebar.active {
+      left: 0;
+    }
+
+    .sidebar h4 {
+      text-align: center;
+      margin-bottom: 30px;
+      font-weight: bold;
+    }
+
+    .sidebar a {
+      display: block;
+      padding: 15px 30px;
+      color: white;
+      text-decoration: none;
+      transition: 0.2s;
+    }
+
+    .sidebar a:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .main-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 40px;
+    }
+
+    .navbar-toggle {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 1100;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 12px;
+      color: white;
+      font-size: 20px;
+    }
+
+    .glass-card {
+      max-width: 90%;
+      margin-left: 100px;
+      margin-right: 100px;
+      padding-top: 30px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 7px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      height: auto;
+      margin-top: 10px;
+    }
+    h2.mb-4.text-center {
+      margin-bottom: 20px; /* Bisa ditambah */
+    }
+
+    .table-responsive {
+      flex-grow: 1;
+      overflow-y: auto;
+      max-height: 300px;
+      margin-bottom: 20px;
+    }
+
+    .table-responsive::-webkit-scrollbar {
+      width: 8px;
+    }
+    .table-responsive::-webkit-scrollbar-thumb {
+      background-color: rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+    }
+
+    .table-transparent thead {
+      background-color: transparent;
+    }
+
+    .table-transparent th,
+    .table-transparent td {
+      background-color: transparent;
+      color: white;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      vertical-align: middle;
+      padding: 5px 0px;
+      white-space: nowrap;
+      text-align: center;
+    }
+
+    .table-transparent tbody tr:hover {
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .btn-download-wrapper {
+      display: flex;
+      justify-content: center;
+      margin: 20px 0 10px 0;
+    }
+
+    .btn-download {
+      background-color: #198754;
+      color: white;
+      border: none;
+      padding: 7px 24px;
+      border-radius: 8px;
+      font-weight: 500;
+    }
+
+    .btn-download:hover {
+      background-color: #157347;
+    }
+
+    footer {
+      text-align: center;
+      color: #ccc;
+      font-size: 15px;
+      margin-top: 30px;
+    }
+
+    h2, h4 {
+      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    }
+
+    @media screen and (max-width: 768px) {
+      .main-wrapper {
+        margin-left: 0;
+        padding: 20px;
+      }
+
+      .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+        padding-top: 20px;
+      }
+
+      .navbar-toggle {
+        left: 15px;
+        top: 15px;
+      }
+
+      .btn-download {
+        float: none;
+        width: 100%;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <button class="navbar-toggle" onclick="toggleSidebar()">☰</button>
+
+  <div class="sidebar" id="sidebar">
+    <h4>Bioflok App</h4>
+    <a href="/index">Dashboard</a>
+    <a href="/log-data">Log Data</a>
+  </div>
+
+  <div class="main-wrapper" id="mainContent">
+    <h2 class="mb-4 text-center">Log Data Pengukuran</h2>
+
+    <div class="glass-card">
+      <div class="table-responsive">
+        <table id="logTable" class="table table-transparent table-striped mb-0">
+          <thead>
+            <tr>
+              <th>Tanggal</th>
+              <th>Waktu</th>
+              <th>Suhu (°C)</th>
+              <th>pH</th>
+              <th>Kekeruhan (NTU)</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="logTableBody">
+            <!-- Diisi dari JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tombol download CSV di luar glass-card -->
+    <div class="btn-download-wrapper">
+      <button class="btn-download" onclick="downloadCSV()">Download as CSV</button>
+    </div>
+
+    <footer>
+      &copy; 2025 Bioflok Monitoring System. All rights reserved.
+    </footer>
+  </div>
+
+  <script>
+    async function loadLogData() {
+      try {
+        const response = await fetch('/firebase-logs');
+        const logs = await response.json();
+
+        if (logs.error) {
+          console.error('Error saat ambil log:', logs.error);
+          return;
+        }
+
+        const tableBody = document.getElementById("logTableBody");
+        tableBody.innerHTML = '';
+
+        logs.forEach(log => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${log.date}</td>
+            <td>${log.time}</td>
+            <td>${parseFloat(log.temperature).toFixed(1)}</td>
+            <td>${parseFloat(log.pH).toFixed(1)}</td>
+            <td>${parseFloat(log.turbidity).toFixed(1)}</td>
+            <td>${log.status}</td>
+          `;
+          tableBody.appendChild(row);
+        });
+      } catch (err) {
+        console.error('Gagal fetch log data:', err);
+      }
+    }
+
+    window.onload = () => {
+      loadLogData();
+      setInterval(loadLogData, 10000);
+    };
+
+    function downloadCSV() {
+      const table = document.getElementById("logTable");
+      let csv = [];
+      for (let i = 0; i < table.rows.length; i++) {
+        let row = [], cols = table.rows[i].querySelectorAll("td, th");
+        for (let j = 0; j < cols.length; j++) {
+          row.push('"' + cols[j].innerText + '"');
+        }
+        csv.push(row.join(","));
+      }
+
+      const csvFile = new Blob([csv.join("\n")], { type: "text/csv" });
+      const downloadLink = document.createElement("a");
+      downloadLink.download = "log_data.csv";
+      downloadLink.href = window.URL.createObjectURL(csvFile);
+      downloadLink.style.display = "none";
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+    }
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById("sidebar");
+      sidebar.classList.toggle("active");
+    }
+    // === PERBAIKAN UNTUK MASALAH TAB TIDAK AKTIF ===
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            console.log("Tab Log Data kembali aktif, mengambil data terbaru...");
+            loadLogData(); // Panggil loadLogData untuk langsung update
+        }
+    });
+  </script>
+  
+
+</body>
+</html>
