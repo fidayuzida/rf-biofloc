@@ -1,42 +1,37 @@
+// Memuat environment variables dari file .env di paling atas
+require('dotenv').config();
+
 const express = require('express');
 const admin = require('firebase-admin');
 const fetch = require('node-fetch');
-const path = require('path');
-const cors = require('cors'); // WAJIB: Untuk mengizinkan koneksi dari frontend
+const cors = require('cors');
 
 const app = express();
 const port = process.env.PORT || 8080;
 
-// --- KONFIGURASI ---
-const serviceAccount = require('./rf-bioflok-firebase-adminsdk-fbsvc-617560ca39.json');
-const PREDICTION_API_URL = 'http://127.0.0.1:8081'; 
+// ==========================================================
+// ===   BAGIAN 1: KONFIGURASI AMAN (dari file .env)      ===
+// ==========================================================
+// Mengambil konfigurasi dari environment variables untuk keamanan
+const PREDICTION_API_URL = process.env.PREDICTION_API_URL;
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+const FIREBASE_DATABASE_URL = process.env.FIREBASE_DATABASE_URL;
 
-// WAJIB: Izinkan koneksi dari domain frontend Anda (Firebase Hosting)
-// Ganti dengan URL .web.app Anda jika berbeda
+// Middleware CORS, hanya izinkan koneksi dari frontend Anda
 app.use(cors({
-    origin: 'https://rf-bioflok.web.app' 
+    origin: 'https://rf-bioflok.web.app'
 }));
 
-// ==========================================================
-// ===         KONFIGURASI NOTIFIKASI TELEGRAM            ===
-// ==========================================================
-const TELEGRAM_BOT_TOKEN = '7402821846:AAEa2KG03G0d95o0Gf5EOYaqVJKD74i31r0';
-const TELEGRAM_CHAT_ID = '1083305963';
-// ==========================================================
-
-// --- PENYIMPANAN STATUS TERAKHIR (UNTUK MENCEGAH SPAM) ---
-// CATATAN: Variabel ini akan reset jika server restart.
-// Untuk produksi jangka panjang, disarankan menyimpan ini di database.
-let lastKnownStatus = 'Baik'; 
-
-// --- INISIALISASI DATABASE ---
+// --- INISIALISASI FIREBASE ---
+// Firebase Admin SDK akan otomatis menggunakan GOOGLE_APPLICATION_CREDENTIALS dari .env
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  databaseURL: 'https://rf-bioflok-default-rtdb.asia-southeast1.firebasedatabase.app/'
+  databaseURL: FIREBASE_DATABASE_URL
 });
 const db = admin.database();
 
-// --- FUNGSI BANTUAN ---
+// --- BANTUAN FORMAT TANGGAL ---
+// Fungsi ini tetap berguna untuk frontend
 function parseDateString(dateString) {
   if (!dateString || !dateString.includes(' ')) return new Date().toISOString();
   const [datePart, timePart] = dateString.split(' ');
@@ -44,9 +39,10 @@ function parseDateString(dateString) {
   return `${year}-${month}-${day}T${timePart}`;
 }
 
-// --- RUTE API (Logika Inti Tidak Berubah) ---
+// === ENDPOINT UTAMA ===
 app.get('/firebase-data', async (req, res) => {
   try {
+    // 1. Ambil data sensor terakhir
     const sensorRef = db.ref('sensor_readings');
     const snapshot = await sensorRef.orderByKey().limitToLast(1).once('value');
     const data = snapshot.val();
@@ -56,6 +52,7 @@ app.get('/firebase-data', async (req, res) => {
     const latestData = data[latestKey];
     const latestSensorTimestamp = latestData.timestamp;
 
+    // 2. Panggil API prediksi untuk mendapatkan status saat ini
     const predictionResponseForUI = await fetch(PREDICTION_API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -65,6 +62,15 @@ app.get('/firebase-data', async (req, res) => {
     const predictionResultForUI = await predictionResponseForUI.json();
     const currentStatus = predictionResultForUI.label;
 
+    // ===================================================================
+    // === BAGIAN 3: STATUS PERSISTEN UNTUK NOTIFIKASI YANG ANDAL      ===
+    // ===================================================================
+    // Ambil status terakhir yang tersimpan di database, bukan dari memori
+    const statusRef = db.ref('server_status/lastKnown');
+    const statusSnapshot = await statusRef.once('value');
+    const lastKnownStatus = statusSnapshot.val() || 'Baik'; // Default 'Baik' jika belum ada
+
+    // Kirim notifikasi HANYA jika status berubah menjadi 'Buruk'
     if (currentStatus === 'Buruk' && lastKnownStatus !== 'Buruk') {
         console.log("Kondisi buruk terdeteksi, mengirim notifikasi Telegram...");
         const message = `⚠️ *PERINGATAN KUALITAS AIR!* ⚠️\n\nStatus kolam saat ini: *${currentStatus}*\n\nMohon segera diperiksa.\n- Suhu: ${latestData.temperature.toFixed(1)}°C\n- pH: ${latestData.pH.toFixed(2)}\n- Kekeruhan: ${latestData.turbidity.toFixed(0)} NTU`;
@@ -79,9 +85,16 @@ app.get('/firebase-data', async (req, res) => {
                 parse_mode: 'Markdown'
             })
         }).catch(err => console.error("Gagal mengirim notifikasi Telegram:", err));
+        
+        // Simpan status baru ke database agar tidak kirim notif lagi
+        await statusRef.set('Buruk'); 
+    } else if (currentStatus !== lastKnownStatus) {
+        // Jika status berubah (misal dari Buruk ke Baik), update juga di DB
+        await statusRef.set(currentStatus);
     }
-    lastKnownStatus = currentStatus;
+    // ===================================================================
 
+    // 4. Simpan data ke log jika merupakan data baru
     const logRef = db.ref('logs'); 
     const lastLogSnapshot = await logRef.orderByChild('original_timestamp').limitToLast(1).once('value');
     const lastLogData = lastLogSnapshot.val();
@@ -89,9 +102,15 @@ app.get('/firebase-data', async (req, res) => {
 
     if (latestSensorTimestamp !== lastLoggedTimestamp) {
         console.log(`Data baru (${latestSensorTimestamp}) terdeteksi, menyimpan ke /logs...`);
+        
+        // Format tanggal YYYY-MM-DD untuk optimasi query
+        const [datePart, timePart] = latestSensorTimestamp.split(' ');
+        const [day, month, year] = datePart.split('/');
+        const formattedDateForQuery = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+
         const newLogEntry = {
-            date: latestSensorTimestamp.split(' ')[0],
-            time: latestSensorTimestamp.split(' ')[1],
+            date: formattedDateForQuery, // Format YYYY-MM-DD
+            time: timePart,
             temperature: latestData.temperature,
             pH: latestData.pH,
             turbidity: latestData.turbidity,
@@ -104,6 +123,7 @@ app.get('/firebase-data', async (req, res) => {
         console.log(`Data duplikat (${latestSensorTimestamp}) terdeteksi, skip penyimpanan log.`);
     }
     
+    // 5. Kirim respons ke frontend
     res.json({
       raw_data: latestData,
       classification: currentStatus,
@@ -116,18 +136,50 @@ app.get('/firebase-data', async (req, res) => {
   }
 });
 
+// ==========================================================
+// === BAGIAN 2: ENDPOINT LOG YANG EFISIEN & TEROPTIMASI  ===
+// ==========================================================
 app.get('/firebase-logs', async (req, res) => {
     try {
-        const logRef = db.ref('logs');
-        const logSnapshot = await logRef.orderByChild('server_timestamp').limitToLast(50).once('value');
-        const logData = logSnapshot.val() || {};
-        const logsArray = Object.values(logData).sort((a, b) => b.server_timestamp - a.server_timestamp);
+        const { range, date } = req.query;
+        // Gunakan query Firebase untuk memfilter data di sisi database, bukan di server
+        let query = db.ref('logs').orderByChild('date');
+
+        if (date) {
+            // Filter berdasarkan tanggal spesifik (format YYYY-MM-DD)
+            query = query.equalTo(date);
+        } else if (range && range !== 'all') {
+            // Filter berdasarkan rentang waktu
+            const now = new Date();
+            let startDate = new Date();
+            if (range === '1d') startDate.setDate(now.getDate() - 1);
+            if (range === '7d') startDate.setDate(now.getDate() - 7);
+            if (range === '30d') startDate.setDate(now.getDate() - 30);
+            
+            const formattedStartDate = startDate.toISOString().split('T')[0]; // Konversi ke YYYY-MM-DD
+            query = query.startAt(formattedStartDate);
+        }
+
+        const snapshot = await query.once('value');
+        const logData = snapshot.val() || {};
+
+        // Ubah object hasil query menjadi array dan urutkan di server (karena data sudah sedikit)
+        const logsArray = Object.values(logData).sort((a, b) => {
+            const aTime = new Date(`${a.date}T${a.time}`).getTime();
+            const bTime = new Date(`${b.date}T${b.time}`).getTime();
+            return bTime - aTime; // Urutkan dari yang terbaru ke terlama
+        });
+
         res.json(logsArray);
+
     } catch (error) {
         console.error('Error di /firebase-logs:', error);
         res.status(500).json({ error: 'Gagal mengambil data log.' });
     }
 });
 
-// --- SERVER START ---
-app.listen(port, () => console.log(`Server utama berjalan di http://localhost:${port}`));
+// === START SERVER ===
+app.listen(port, () => {
+    console.log(`Server utama berjalan di http://localhost:${port}`);
+    console.log(`Konfigurasi API Prediksi: ${PREDICTION_API_URL}`);
+});

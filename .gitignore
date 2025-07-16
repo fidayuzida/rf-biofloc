@@ -7,8 +7,9 @@
 /main-app/node_modules
 
 /prediction-api/venv
-/pelatihan/hm
-/pelatihan/model
+pelatihan/pelatihan.py
+pelatihan/hm.py
+
 
 
 **/__pycache__/
