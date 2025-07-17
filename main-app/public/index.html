@@ -93,9 +93,9 @@
   </div>
 
   <script>
-    // --- PERUBAHAN DI SINI ---
     // Definisikan alamat IP publik dan port dari VM Azure Anda
-    const API_BASE_URL = 'https://supreme-fair-thrush.ngrok-free.app'; // Ganti dengan IP Anda jika berbeda
+    // API_BASE_URL ini harus menunjuk ke Node.js server.js yang sudah Anda deploy
+    const API_BASE_URL = 'https://supreme-fair-thrush.ngrok-free.app'; // Ganti dengan URL server.js Anda setelah deploy
 
     function toggleSidebar() {
       const sidebar = document.getElementById('sidebar');
@@ -175,16 +175,27 @@
 
     async function fetchData() {
       try {
-        // --- DAN PERUBAHAN DI SINI ---
-        // Gunakan alamat lengkap untuk memanggil API di VM Azure
         const response = await fetch(`${API_BASE_URL}/firebase-data`);
         const data = await response.json();
-        if (data.error) return;
+
+        // --- MENAMBAHKAN PEMERIKSAAN KETAHANAN DI SINI ---
+        // Memastikan data dan raw_data ada, serta properti sensor yang dibutuhkan tidak undefined
+        if (!data || !data.raw_data || typeof data.raw_data.temperature === 'undefined' || typeof data.raw_data.pH === 'undefined' || typeof data.raw_data.turbidity === 'undefined') {
+          console.error('Data yang diterima dari API tidak lengkap atau salah format:', data);
+          // Perbarui UI untuk menampilkan "N/A" atau pesan error
+          document.getElementById('temp').textContent = 'N/A';
+          document.getElementById('pH').textContent = 'N/A';
+          document.getElementById('turbidity').textContent = 'N/A';
+          document.getElementById('status').textContent = 'Error Data';
+          document.getElementById('timestamp').textContent = 'N/A';
+          return; // Hentikan eksekusi jika data tidak seperti yang diharapkan
+        }
+        // --- AKHIR PEMERIKSAAN YANG DITAMBAHKAN ---
 
         const suhu = parseFloat(data.raw_data.temperature);
         const pH = parseFloat(data.raw_data.pH);
         const turbidity = parseFloat(data.raw_data.turbidity);
-        const time = new Date(data.timestamp);
+        const time = new Date(data.timestamp); // Timestamp ini berasal dari server.js, bukan raw_data
         const label = formatDate(time);
 
         document.getElementById('temp').textContent = suhu.toFixed(1) + '°C';
@@ -209,9 +220,15 @@
 
         const activeType = document.querySelector(".chart-tab.active")?.textContent.toLowerCase();
         const chartType = activeType === 'suhu' ? 'temperature' : activeType === 'ph' ? 'pH' : 'turbidity';
-        switchChart(chartType || 'temperature'); // Default ke suhu jika tidak ada yang aktif
+        switchChart(chartType || 'temperature'); // Default ke suhu jika tidak ada tab yang aktif
       } catch (error) {
         console.error('Gagal ambil data:', error);
+        // Perbarui UI untuk menampilkan status error
+        document.getElementById('temp').textContent = 'Error';
+        document.getElementById('pH').textContent = 'Error';
+        document.getElementById('turbidity').textContent = 'Error';
+        document.getElementById('status').textContent = 'Gagal Ambil Data';
+        document.getElementById('timestamp').textContent = 'Error';
       }
     }
 
