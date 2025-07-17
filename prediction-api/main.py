@@ -67,3 +67,10 @@ def predict(request):
 
     except Exception as e:
         return jsonify({"error": f"Gagal melakukan prediksi: {e}"}), 500
+from flask import Flask, request
+
+app = Flask(__name__)
+app.add_url_rule('/', view_func=predict, methods=['POST'])
+
+if __name__ == '__main__':
+    app.run(host='127.0.0.1', port=8081)
