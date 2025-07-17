@@ -19,8 +19,21 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const FIREBASE_DATABASE_URL = process.env.FIREBASE_DATABASE_URL;
 
 // Middleware CORS, hanya izinkan koneksi dari frontend Anda
+// Daftar semua domain yang diizinkan untuk mengakses server ini
+const allowedOrigins = [
+  'https://rf-bioflok.web.app', // Frontend Anda di Firebase
+  'https://bioflok-api.trycloudflare.com' // Ganti dengan URL Cloudflare Anda
+];
+
 app.use(cors({
-    origin: 'https://rf-bioflok.web.app'
+  origin: function (origin, callback) {
+    // Izinkan jika origin ada di dalam daftar 'allowedOrigins'
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Akses diblokir oleh kebijakan CORS'));
+    }
+  }
 }));
 
 // --- INISIALISASI FIREBASE ---
