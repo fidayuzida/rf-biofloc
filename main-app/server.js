@@ -22,7 +22,7 @@ const FIREBASE_DATABASE_URL = process.env.FIREBASE_DATABASE_URL;
 // Daftar semua domain yang diizinkan untuk mengakses server ini
 const allowedOrigins = [
   'https://rf-bioflok.web.app', // Frontend Anda di Firebase
-  'https://bioflok-api.trycloudflare.com' // Ganti dengan URL Cloudflare Anda
+  'https://supreme-fair-thrush.ngrok-free.app' // Ganti dengan URL Cloudflare Anda
 ];
 
 app.use(cors({
