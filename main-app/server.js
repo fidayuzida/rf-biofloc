@@ -18,7 +18,6 @@ const FIREBASE_DATABASE_URL = process.env.FIREBASE_DATABASE_URL;
 // === CORS config ===
 const allowedOrigins = [
   'https://rf-bioflok.web.app',
-  'https://supreme-fair-thrush.ngrok-free.app'
 ];
 
 app.use(cors({
@@ -49,6 +48,8 @@ function parseDateString(dateString) {
   return `${year}-${month}-${day}T${timePart}`;
 }
 
+
+
 // === Endpoint utama ===
 app.get('/firebase-data', async (req, res) => {
   try {
@@ -61,10 +62,11 @@ app.get('/firebase-data', async (req, res) => {
     const latestData = data[latestKey];
     const latestSensorTimestamp = latestData.timestamp;
 
+    // server.js - Kode BARU yang benar
+    console.log(`LOG: Menghubungi API Prediksi di ${PREDICTION_API_URL} dengan metode GET...`);
+
     const predictionResponseForUI = await fetch(PREDICTION_API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(latestData)
+    method: 'GET' // Ubah ke GET, tidak perlu headers dan body
     });
     if (!predictionResponseForUI.ok) throw new Error('API Prediksi gagal.');
 
