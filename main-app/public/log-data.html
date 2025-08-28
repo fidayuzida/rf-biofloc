@@ -1,35 +1,18 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Log Data - Bioflok Monitoring</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    /* CSS ASLI ANDA - TIDAK DIUBAH */
     html, body {
-      height: 100%;
-    }
-
-    body {
       margin: 0;
+      padding: 0;
       background: linear-gradient(to bottom right, #0f2027, #203a43, #2c5364);
-      color: #f5f5f5;
+      color: white;
       font-family: 'Segoe UI', sans-serif;
       overflow-x: hidden;
-      position: relative;
-      display: flex;
-      flex-direction: column;
-    }
-
-    body::before {
-      content: "";
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background-image: url('https://www.transparenttextures.com/patterns/black-paper.png');
-      opacity: 0.04;
-      pointer-events: none;
-      z-index: 0;
     }
 
     .sidebar {
@@ -38,7 +21,7 @@
       position: fixed;
       top: 0;
       left: -220px;
-      background-color: rgba(255, 255, 255, 0.08);
+      background-color: rgba(255,255,255,0.08);
       backdrop-filter: blur(10px);
       padding-top: 60px;
       transition: all 0.3s ease;
@@ -64,12 +47,7 @@
     }
 
     .sidebar a:hover {
-      background-color: rgba(255, 255, 255, 0.1);
-    }
-
-    .main-wrapper {
-      padding: 40px;
-      flex-grow: 1; 
+      background-color: rgba(255,255,255,0.1);
     }
 
     .navbar-toggle {
@@ -85,83 +63,104 @@
       font-size: 20px;
     }
 
-    .glass-card {
-      max-width: 90%;
+    #sidebarBackdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 999;
+    }
+
+    .main-wrapper {
+      padding: 40px;
+      max-width: 1200px;
       margin: 0 auto;
-      padding-top: 30px;
+      transition: all 0.3s ease;
+      min-height: 100vh;
+      flex-grow: 1;
+    }
+
+    .glass-card {
+      max-width: fit-content;
       background: rgba(255, 255, 255, 0.1);
       border-radius: 20px;
       padding: 20px;
       backdrop-filter: blur(12px);
       box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-      position: relative;
-      z-index: 1;
-      display: flex;
-      flex-direction: column;
-      height: auto;
       margin-top: 10px;
     }
-    
-    h2.mb-4.text-center {
-      margin-bottom: 20px;
+
+    .filter-container {
+      max-width: 100%;
+      margin: 0 auto 20px auto;
+      padding: 15px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
     }
 
-    /* --- PENAMBAHAN CSS UNTUK FILTER --- */
-    .filter-container {
-        max-width: 90%;
-        margin: 0 auto 20px auto; /* Margin bawah agar ada jarak ke card tabel */
-        padding: 15px;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 20px;
-        backdrop-filter: blur(12px);
-        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-    }
     .form-control, .form-select {
-        background-color: rgba(0,0,0,0.2);
-        color: white;
-        border-color: rgba(255,255,255,0.2);
+      background-color: rgba(0,0,0,0.2);
+      color: white;
+      border-color: rgba(255,255,255,0.2);
     }
+
     .form-control:focus, .form-select:focus {
-        background-color: rgba(0,0,0,0.3);
-        color: white;
-        border-color: rgba(255,255,255,0.5);
-        box-shadow: none;
+      background-color: rgba(0,0,0,0.3);
+      color: white;
+      border-color: rgba(255,255,255,0.5);
+      box-shadow: none;
     }
-    /* --- AKHIR PENAMBAHAN CSS --- */
 
     .table-responsive {
-      flex-grow: 1;
+      overflow-x: auto;
+      height: 45vh;
       overflow-y: auto;
-      max-height: 45vh;
-      margin-bottom: 20px;
+      border-radius: 10px;
     }
 
-    .table-responsive::-webkit-scrollbar {
-      width: 8px;
+    .table-transparent {
+    width: 100%;
+    table-layout: fixed;
     }
-    .table-responsive::-webkit-scrollbar-thumb {
-      background-color: rgba(255, 255, 255, 0.3);
-      border-radius: 8px;
-    }
-
     .table-transparent thead {
-      background-color: transparent;
       position: sticky;
       top: 0;
-      z-index: 2;
-      backdrop-filter: blur(5px);
+      z-index: 10;
+      background-color: rgb(39, 61, 70); /* transparan biru gelap */
+      backdrop-filter: blur(8px);
     }
 
-    .table-transparent th,
-    .table-transparent td {
+    #logTable {
+      
+      width: 100%;
+    }
+
+    #logTable th,
+    #logTable td {
+      max-width: 100px; /* atau coba 120px, bisa disesuaikan */
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+
+    .table-transparent th, .table-transparent td {
       background-color: transparent;
       color: white;
       border-bottom: 1px solid rgba(255, 255, 255, 0.2);
       vertical-align: middle;
       padding: 12px 8px;
-      white-space: nowrap;
       text-align: center;
     }
+    /* Pengaturan lebar kolom agar proporsional */
+    .table-transparent th:nth-child(1) { width: 20%; } /* Kolom Tanggal */
+    .table-transparent th:nth-child(2) { width: 15%; } /* Kolom Waktu */
+    .table-transparent th:nth-child(3) { width: 15%; } /* Kolom Suhu */
+    .table-transparent th:nth-child(4) { width: 15%; } /* Kolom pH */
+    .table-transparent th:nth-child(5) { width: 20%; } /* Kolom Kekeruhan */
+    .table-transparent th:nth-child(6) { width: 15%; } /* Kolom Status */
 
     .table-transparent tbody tr:hover {
       background-color: rgba(255, 255, 255, 0.08);
@@ -170,7 +169,7 @@
     .btn-download-wrapper {
       display: flex;
       justify-content: center;
-      margin: 20px 0 10px 0;
+      margin: 40px 0 10px 0;
     }
 
     .btn-download {
@@ -186,53 +185,51 @@
     .btn-download:hover {
       background-color: #157347;
     }
-    /* --- PENAMBAHAN CSS UNTUK TOMBOL DISABLED --- */
+
     .btn-download:disabled {
-        background-color: #5a6268;
-        cursor: not-allowed;
+      background-color: #5a6268;
+      cursor: not-allowed;
     }
-    /* --- AKHIR PENAMBAHAN CSS --- */
 
     footer {
       text-align: center;
       color: #ccc;
       font-size: 15px;
-      padding: 20px 0;
+      padding: 30px 0;
       width: 100%;
     }
 
-    h2, h4 {
-      text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-    }
-
     @media screen and (max-width: 768px) {
+
+      /* 1. Aktifkan scroll horizontal untuk pembungkus tabel */
+      .table-responsive {
+          overflow-x: auto;
+      }
+
+      /* 2. Beri lebar minimal pada tabel agar tidak 'gepeng' */
+      .table-transparent {
+          min-width: 500px; /* Paksa tabel agar lebar, sehingga ada yg bisa di-scroll */
+          table-layout: auto; /* Di mobile, biarkan browser atur lebar kolom */
+      }
+
+      /* 3. Hapus paksaan lebar persentase di mobile */
+      .table-transparent th {
+          width: auto !important; /* Biarkan lebar header mengikuti kontennya */
+      }
+
+      /* Penyesuaian lain untuk mobile jika perlu */
       .main-wrapper {
-        padding: 20px;
+          padding: 20px;
       }
       .glass-card, .filter-container {
-        margin-left: 0;
-        margin-right: 0;
-        max-width: 100%;
-      }
-      .sidebar {
-        width: 100%;
-        height: auto;
-        position: relative;
-        padding-top: 20px;
-        left: 0;
-      }
-      .navbar-toggle {
-        display: none;
-      }
-      .btn-download {
-        width: 100%;
+          max-width: 100%;
       }
     }
   </style>
 </head>
 <body>
-
   <button class="navbar-toggle" onclick="toggleSidebar()">☰</button>
+  <div id="sidebarBackdrop" onclick="toggleSidebar()"></div>
 
   <div class="sidebar" id="sidebar">
     <h4>Bioflok App</h4>
@@ -243,23 +240,21 @@
   <div class="main-wrapper" id="mainContent">
     <h2 class="mb-4 text-center">Log Data Pengukuran</h2>
 
-    <!-- === PENAMBAHAN HTML: WADAH UNTUK FILTER === -->
     <div class="filter-container d-flex justify-content-center align-items-center flex-wrap gap-3">
-        <div class="d-flex align-items-center gap-2">
-            <label for="dateFilter">Tanggal:</label>
-            <input type="date" id="dateFilter" class="form-control" style="width: 180px;">
-        </div>
-        <div class="d-flex align-items-center gap-2">
-            <label for="rangeFilter">Rentang:</label>
-            <select id="rangeFilter" class="form-select" style="width: 160px;">
-                <option value="all">Semua</option>
-                <option value="1d">1 Hari Terakhir</option>
-                <option value="7d">7 Hari Terakhir</option>
-                <option value="30d">30 Hari Terakhir</option>
-            </select>
-        </div>
+      <div class="d-flex align-items-center gap-2">
+        <label for="dateFilter">Tanggal:</label>
+        <input type="date" id="dateFilter" class="form-control" style="width: 180px;">
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <label for="rangeFilter">Rentang:</label>
+        <select id="rangeFilter" class="form-select" style="width: 160px;">
+          <option value="all">Semua</option>
+          <option value="1d">1 Hari Terakhir</option>
+          <option value="7d">7 Hari Terakhir</option>
+          <option value="30d">30 Hari Terakhir</option>
+        </select>
+      </div>
     </div>
-    <!-- === AKHIR PENAMBAHAN HTML === -->
 
     <div class="glass-card">
       <div class="table-responsive">
@@ -275,7 +270,7 @@
             </tr>
           </thead>
           <tbody id="logTableBody">
-            <!-- Diisi dari JavaScript -->
+            <!-- Diisi oleh JavaScript -->
           </tbody>
         </table>
       </div>
@@ -284,146 +279,146 @@
     <div class="btn-download-wrapper">
       <button class="btn-download" onclick="downloadCSV()">Download as CSV</button>
     </div>
+
+    <footer>
+      &copy; 2025 Bioflok Monitoring System. All rights reserved.
+    </footer>
   </div>
 
-  <footer>
-    &copy; 2025 Bioflok Monitoring System. All rights reserved.
-  </footer>
-
-  <!-- === SELURUH BAGIAN SCRIPT DI-UPDATE DENGAN FUNGSI BARU === -->
   <script>
     const API_BASE_URL = 'https://supreme-fair-thrush.ngrok-free.app';
     const rangeFilter = document.getElementById("rangeFilter");
     const dateFilter = document.getElementById("dateFilter");
     const tableBody = document.getElementById("logTableBody");
 
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const backdrop = document.getElementById('sidebarBackdrop');
+      const isActive = sidebar.classList.toggle('active');
+      backdrop.style.display = isActive ? 'block' : 'none';
+    }
+
     function showTableMessage(message) {
-        tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-4">${message}</td></tr>`;
+      tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-4">${message}</td></tr>`;
     }
 
     async function loadLogData() {
-        showTableMessage("Memuat data...");
-        try {
-            const range = rangeFilter.value;
-            const date = dateFilter.value;
-
-            const url = new URL(`${API_BASE_URL}/firebase-logs`);
-            if (date) {
-                url.searchParams.append('date', date);
-            } else if (range && range !== 'all') {
-                url.searchParams.append('range', range);
-            }
-
-            const response = await fetch(url.toString());
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-            
-            const logs = await response.json();
-            tableBody.innerHTML = '';
-
-            if (!logs || logs.length === 0) {
-                showTableMessage("Tidak ada data untuk filter yang dipilih.");
-                return;
-            }
-
-            logs.forEach(log => {
-                const row = document.createElement('tr');
-                const displayDate = new Date(log.date).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                row.innerHTML = `
-                    <td>${displayDate}</td>
-                    <td>${log.time || 'N/A'}</td>
-                    <td>${parseFloat(log.temperature).toFixed(1)}</td>
-                    <td>${parseFloat(log.pH).toFixed(1)}</td>
-                    <td>${parseFloat(log.turbidity).toFixed(1)}</td>
-                    <td>${log.status || 'N/A'}</td>
-                `;
-                tableBody.appendChild(row);
-            });
-        } catch (err) {
-            console.error('Gagal fetch log data:', err);
-            showTableMessage("Gagal memuat data. Periksa koneksi atau coba lagi nanti.");
+      showTableMessage("Memuat data...");
+      try {
+        const range = rangeFilter.value;
+        const date = dateFilter.value;
+        const url = new URL(`${API_BASE_URL}/firebase-logs`);
+        if (date) {
+          url.searchParams.append('date', date);
+        } else if (range && range !== 'all') {
+          url.searchParams.append('range', range);
         }
+
+        const response = await fetch(url.toString());
+        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+
+        const logs = await response.json();
+        tableBody.innerHTML = '';
+
+        if (!logs || logs.length === 0) {
+          showTableMessage("Tidak ada data untuk filter yang dipilih.");
+          return;
+        }
+
+        logs.forEach(log => {
+          const row = document.createElement('tr');
+          const displayDate = new Date(log.date).toLocaleDateString('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' });
+          row.innerHTML = `
+            <td>${displayDate}</td>
+            <td>${log.time || 'N/A'}</td>
+            <td>${parseFloat(log.temperature).toFixed(1)}</td>
+            <td>${parseFloat(log.pH).toFixed(1)}</td>
+            <td>${parseFloat(log.turbidity).toFixed(1)}</td>
+            <td>${log.status || 'N/A'}</td>
+          `;
+          tableBody.appendChild(row);
+        });
+      } catch (err) {
+        console.error('Gagal fetch log data:', err);
+        showTableMessage("Gagal memuat data. Periksa koneksi atau coba lagi nanti.");
+      }
     }
 
     function escapeCsvCell(cell) {
-        let text = cell.innerText || '';
-        text = text.replace(/"/g, '""');
-        if (text.includes(',') || text.includes('"') || text.includes('\n')) {
-            text = `"${text}"`;
-        }
-        return text;
+      let text = cell.innerText || '';
+      text = text.replace(/"/g, '""');
+      if (text.includes(',') || text.includes('"') || text.includes('\n')) {
+        text = `"${text}"`;
+      }
+      return text;
     }
 
     function downloadCSV() {
-        const button = document.querySelector('.btn-download');
-        const originalText = button.innerHTML;
-        
-        button.innerHTML = 'Mempersiapkan...';
-        button.disabled = true;
+      const button = document.querySelector('.btn-download');
+      const originalText = button.innerHTML;
 
-        try {
-            const table = document.getElementById("logTable");
-            let csv = [];
-            const headers = Array.from(table.querySelectorAll("thead th")).map(h => escapeCsvCell(h)).join(",");
-            csv.push(headers);
+      button.innerHTML = 'Mempersiapkan...';
+      button.disabled = true;
 
-            const rows = table.querySelectorAll("tbody tr");
-            if (rows.length > 0 && rows[0].querySelectorAll('td').length > 1) {
-                rows.forEach(tr => {
-                    const row = Array.from(tr.querySelectorAll("td")).map(cell => escapeCsvCell(cell)).join(",");
-                    csv.push(row);
-                });
-            } else {
-                console.log("Tidak ada data untuk di-download.");
-                setTimeout(() => {
-                    button.innerHTML = originalText;
-                    button.disabled = false;
-                }, 1500);
-                return;
-            }
+      try {
+        const table = document.getElementById("logTable");
+        let csv = [];
+        const headers = Array.from(table.querySelectorAll("thead th")).map(h => escapeCsvCell(h)).join(",");
+        csv.push(headers);
 
-            const csvFile = new Blob([csv.join("\n")], { type: "text/csv;charset=utf-8;" });
-            const downloadLink = document.createElement("a");
-            const date = new Date().toISOString().slice(0, 10);
-            downloadLink.download = `bioflok_log_${date}.csv`;
-            downloadLink.href = window.URL.createObjectURL(csvFile);
-            downloadLink.style.display = "none";
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
-        } catch (e) {
-            console.error("Gagal membuat file CSV:", e);
-        } finally {
-            setTimeout(() => {
-                button.innerHTML = originalText;
-                button.disabled = false;
-            }, 1500);
+        const rows = table.querySelectorAll("tbody tr");
+        if (rows.length > 0 && rows[0].querySelectorAll('td').length > 1) {
+          rows.forEach(tr => {
+            const row = Array.from(tr.querySelectorAll("td")).map(cell => escapeCsvCell(cell)).join(",");
+            csv.push(row);
+          });
+        } else {
+          console.log("Tidak ada data untuk di-download.");
+          setTimeout(() => {
+            button.innerHTML = originalText;
+            button.disabled = false;
+          }, 1500);
+          return;
         }
+
+        const csvFile = new Blob([csv.join("\n")], { type: "text/csv;charset=utf-8;" });
+        const downloadLink = document.createElement("a");
+        const date = new Date().toISOString().slice(0, 10);
+        downloadLink.download = `bioflok_log_${date}.csv`;
+        downloadLink.href = window.URL.createObjectURL(csvFile);
+        downloadLink.style.display = "none";
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+      } catch (e) {
+        console.error("Gagal membuat file CSV:", e);
+      } finally {
+        setTimeout(() => {
+          button.innerHTML = originalText;
+          button.disabled = false;
+        }, 1500);
+      }
     }
 
-    function toggleSidebar() {
-        const sidebar = document.getElementById("sidebar");
-        sidebar.classList.toggle("active");
-    }
-    
     rangeFilter.addEventListener("change", () => {
-        if (rangeFilter.value !== 'all') dateFilter.value = '';
-        loadLogData();
+      if (rangeFilter.value !== 'all') dateFilter.value = '';
+      loadLogData();
     });
 
     dateFilter.addEventListener("change", () => {
-        if (dateFilter.value) rangeFilter.value = 'all';
-        loadLogData();
+      if (dateFilter.value) rangeFilter.value = 'all';
+      loadLogData();
     });
 
     document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') {
-            loadLogData(); 
-        }
+      if (document.visibilityState === 'visible') {
+        loadLogData(); 
+      }
     });
 
     window.onload = () => {
-        loadLogData();
-        setInterval(loadLogData, 10000);
+      loadLogData();
+      setInterval(loadLogData, 10000);
     };
   </script>
 </body>
